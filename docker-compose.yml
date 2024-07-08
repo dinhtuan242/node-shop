@@ -1,0 +1,20 @@
+services:
+  shop-db:
+    image: mongo
+    restart: always
+    container_name: shop-dev
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${DB_NAME}
+    volumes:
+      - db_data:/data/db
+    networks:
+      mongo_network:
+volumes:
+  db_data:
+networks:
+  mongo_network:
+    driver: bridge

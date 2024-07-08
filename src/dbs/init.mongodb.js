@@ -1,8 +1,9 @@
 'use strict'
 
 const mongoose = require('mongoose')
+const { db: { host, name, port, user, password } } = require('../configs/config.mongodb')
 
-const connectString = `mongodb://localhost:27017/shopDev`
+const connectString = `mongodb://${user}:${password}@${host}:${port}/${name}?authSource=admin`
 
 
 class Database {
@@ -12,9 +13,10 @@ class Database {
 
     connect(type = 'mongodb') {
         if (type.toLowerCase() === 'mongodb') {
+            console.log(connectString);
             mongoose.connect(connectString)
-            .then(_ => console.log(`Connected mongodb success`))
-            .catch(err => console.log('error connect!'))
+                .then(_ => console.log(`Connected mongodb success`))
+                .catch(err => console.log('error connect!'))
         }
     }
 

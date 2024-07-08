@@ -1,9 +1,9 @@
 const app = require('./src/app')
 
-const PORT = 3055;
+const { app: { port } } = require('./src/configs/config.mongodb')
 
-const server = app.listen(PORT, () => {
-    console.log(`App start using port: ${PORT}`);
+const server = app.listen(port, () => {
+    console.log(`App start using port: ${port}`);
 })
 
 process.on('SIGINT', () => {
