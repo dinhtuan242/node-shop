@@ -6,6 +6,7 @@ const crypto = require('crypto')
 const KeyTokenService = require("./keyToken.service")
 const { createTokenPair } = require("../auth/authUtils")
 const { getInfoData } = require("../utils")
+const { BadRequestError, ConflictRequestError } = require('../core/error.response')
 
 const RoleShop = {
     SHOP: 'SHOP',
@@ -20,10 +21,7 @@ class AccessService {
             // check email exists
             const holderShop = await shopModel.findOne({ email }).lean()
             if (holderShop) {
-                return {
-                    code: '400',
-                    message: 'Shop already exists!'
-                }
+                throw new BadRequestError('Error: Shop already exists!')
             }
             const passwordHashed = await bcrypt.hash(password, 10)
             const newShop = await shopModel.create({ name, email, password: passwordHashed, roles: [RoleShop.SHOP] })
@@ -49,19 +47,14 @@ class AccessService {
                     privateKey,
                 })
                 if (!keyStore) {
-                    return {
-                        code: '400',
-                        message: 'publickey str error'
-                    }
+                    throw new BadRequestError('Error: publickey str error!')
                 }
                 // const publickeyObj = crypto.createPublicKey(publicKeyStr)
                 const token = await createTokenPair({ userId: newShop._id, email }, publicKey, privateKey)
                 return {
                     code: '20001',
-                    metadata: {
-                        shop: getInfoData({ fields: ['_id', 'name', 'email'], object: newShop }),
-                        token
-                    }
+                    shop: getInfoData({ fields: ['_id', 'name', 'email'], object: newShop }),
+                    token
                 }
             }
             return {
@@ -69,11 +62,7 @@ class AccessService {
                 metadata: null
             }
         } catch (error) {
-            return {
-                code: '400',
-                message: error.message,
-                status: 'error'
-            }
+            throw new BadRequestError(`Error: ${error.message}`)
         }
     }
 }
