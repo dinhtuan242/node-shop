@@ -6,7 +6,8 @@ const crypto = require('crypto')
 const KeyTokenService = require("./keyToken.service")
 const { createTokenPair } = require("../auth/authUtils")
 const { getInfoData } = require("../utils")
-const { BadRequestError, ConflictRequestError } = require('../core/error.response')
+const { BadRequestError, AuthFailureError } = require('../core/error.response')
+const { findByEmail } = require("./shop.service")
 
 const RoleShop = {
     SHOP: 'SHOP',
@@ -63,6 +64,33 @@ class AccessService {
             }
         } catch (error) {
             throw new BadRequestError(`Error: ${error.message}`)
+        }
+    }
+
+    static login = async ({ email, password, refreshToken = null}) => {
+        const foundShop = await findByEmail({email})
+        if (!foundShop) throw new BadRequestError('Error: Shop not exists!')
+
+        const match = bcrypt.compare(password, foundShop.password)
+        if (!match) throw new AuthFailureError('Error: Credential does not match')
+
+        // create key
+        const privateKey = crypto.randomBytes(64).toString('hex')
+        const publicKey = crypto.randomBytes(64).toString('hex')
+
+        // generate token by key
+        const { _id: userId } = foundShop
+        const token = await createTokenPair({userId: foundShop._id, email}, publicKey, privateKey)
+
+        await KeyTokenService.createKeyToken({
+            refreshToken: token.refreshToken,
+            privateKey,
+            publicKey,
+            userId
+        })
+        return {
+            shop: getInfoData({ fields: ['_id', 'name', 'email'], object: foundShop }),
+            token
         }
     }
 }
