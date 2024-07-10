@@ -4,7 +4,7 @@ const shopModel = require("../models/shop.model")
 const bcrypt = require('bcrypt')
 const crypto = require('crypto')
 const KeyTokenService = require("./keyToken.service")
-const { createTokenPair } = require("../auth/authUtils")
+const { createTokenPair, verifyJWT } = require("../auth/authUtils")
 const { getInfoData } = require("../utils")
 const { BadRequestError, AuthFailureError } = require('../core/error.response')
 const { findByEmail } = require("./shop.service")
@@ -96,6 +96,46 @@ class AccessService {
 
     static logout = async (keyStore) => {
         return await KeyTokenService.removeKeyById(keyStore._id)
+    }
+
+    static handleRefreshToken = async (refreshToken) => {
+        // check refresh token is used
+        const foundToken = await KeyTokenService.findByRefreshTokenUsed(refreshToken)
+        if (foundToken) {
+            // decode token to users
+            const { userId, email } = await verifyJWT(refreshToken, foundToken.privateKey)
+            console.log({userId, email});
+
+            // delete all token in key store because leak token
+            await KeyTokenService.deleteKeyByUserId(userId)
+            throw new FobiddenError('Error: Token is leak! Please relogin')
+        }
+
+        const holderToken = await KeyTokenService.findByRefreshToken(refreshToken)
+        if (!holderToken) throw new AuthFailureError('Shop is not registered!')
+
+        // verify refresh token
+        const { userId, email } = await verifyJWT(refreshToken, holderToken.privateKey)
+        // check userId
+        const foundShop = await findByEmail({email})
+        if (!foundShop) throw new AuthFailureError('Shop is not registered!')
+
+        // create 2 token
+        const tokens = await createTokenPair({userId, email}, holderToken.publicKey, holderToken.privateKey)
+
+        // update token
+        await holderToken.updateOne({
+            $set: {
+                refreshToken: tokens.refreshToken
+            },
+            $addToSet: {
+                refreshTokensUsed: refreshToken
+            }
+        })
+        return {
+            user: {userId, email},
+            tokens
+        }
     }
 }
 
