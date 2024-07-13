@@ -6,7 +6,7 @@ const crypto = require('crypto')
 const KeyTokenService = require("./keyToken.service")
 const { createTokenPair, verifyJWT } = require("../auth/authUtils")
 const { getInfoData } = require("../utils")
-const { BadRequestError, AuthFailureError } = require('../core/error.response')
+const { BadRequestError, AuthFailureError, FobiddenError } = require('../core/error.response')
 const { findByEmail } = require("./shop.service")
 
 const RoleShop = {
@@ -136,6 +136,38 @@ class AccessService {
             user: {userId, email},
             tokens
         }
+    }
+
+    static handleRefreshTokenV2 = async ({refreshToken, user, keyStore}) => {
+
+        const {userId, email} = user
+        if (keyStore.refreshTokensUsed.includes(refreshToken)) {
+            await KeyTokenService.deleteKeyByUserId(userId)
+            throw new FobiddenError('Something wrong! Please re-login')
+        }
+        if (keyStore.refreshToken !== refreshToken) throw new AuthFailureError('Shop is not registered!')
+
+        // check userId
+        const foundShop = await findByEmail({email})
+        if (!foundShop) throw new AuthFailureError('Shop is not registered!')
+
+        // create 2 token
+        const tokens = await createTokenPair({userId, email}, keyStore.publicKey, keyStore.privateKey)
+
+        // update token
+        await keyStore.updateOne({
+            $set: {
+                refreshToken: tokens.refreshToken
+            },
+            $addToSet: {
+                refreshTokensUsed: refreshToken
+            }
+        })
+        return {
+            user,
+            tokens
+        }
+        
     }
 }
 
