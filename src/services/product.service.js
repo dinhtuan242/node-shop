@@ -10,7 +10,9 @@ const {
     searchProductByUser,
     findAllProducts,
     findProduct,
+    updateProductById,
 } = require('../models/repositories/product.repo')
+const { removeUndefinedObject, updateNestedObjectParser } = require('../utils')
 
 // define Factory class to create product
 class ProductFatory {
@@ -57,8 +59,17 @@ class ProductFatory {
         return await findProduct({ id, unSelect: ['__v'] })
     }
     
-    static async updateProduct({ keySearch }) {
-        return await searchProductByUser({ keySearch })
+    static async updateProduct(type, productId, payload) {
+        switch (type) {
+            case 'Electronics':
+                return new Electronic(payload).updateProduct(productId)
+            case 'Clothes':
+                return new Clothing(payload).updateProduct(productId)
+            case 'Furnitures':
+                return new Furniture(payload).updateProduct(productId)
+            default:
+                throw new BadRequestError(`Invalid product type: ${type}`)
+        }
     }
 }
 
@@ -81,6 +92,9 @@ class Product {
     async createProduct() {
         return await product.create(this)
     }
+    async updateProduct(productId, payload) {
+        return await updateProductById({productId, payload, model: product})
+    }
 }
 
 // define sub-class for difference product types clothing
@@ -93,6 +107,19 @@ class Clothing extends Product {
         if (!newProduct) throw new BadRequestError('Error: cannot create new product')
 
         return newProduct
+    }
+
+    async updateProduct(productId) {
+        const objectParams = removeUndefinedObject(this)
+        if (objectParams.attributes) {
+            // update child
+            await updateProductById({
+                productId,
+                payload: updateNestedObjectParser(objectParams.attributes),
+                model: clothing
+            })
+        }
+        return await super.updateProduct(productId, updateNestedObjectParser(objectParams))
     }
 }
 
