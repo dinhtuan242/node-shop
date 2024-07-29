@@ -13,6 +13,7 @@ const {
     updateProductById,
 } = require('../models/repositories/product.repo')
 const { removeUndefinedObject, updateNestedObjectParser } = require('../utils')
+const { insertInventory } = require('../models/repositories/inventory.repo')
 
 // define Factory class to create product
 class ProductFatory {
@@ -90,8 +91,18 @@ class Product {
 
     // create new product
     async createProduct() {
-        return await product.create(this)
+        const newProduct = await product.create(this)
+        if (newProduct) {
+            // add product stock to inventory collection
+            await insertInventory({
+                productId: newProduct._id,
+                shopId: this.shop,
+                stock: this.quantity,
+            })
+        }
+        return newProduct
     }
+
     async updateProduct(productId, payload) {
         return await updateProductById({productId, payload, model: product})
     }
