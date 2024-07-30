@@ -2,7 +2,7 @@
 
 const { Types } = require('mongoose')
 const { product, electronic, clothing, furniture } = require('../../models/product.model')
-const { getSelectData, unSelectData } = require('../../utils')
+const { getSelectData, unSelectData, convertToObjectIdMongoose } = require('../../utils')
 
 const findAllDraftForShop = async ({ query, limit, skip }) => {
     return await productQuery({ query, limit, skip })
@@ -71,7 +71,7 @@ const findAllProducts = async ({ limit, sort, page, filter, select }) => {
 }
 
 const findProduct = async ({ id, unSelect }) => {
-    return await product.findById(id).select(unSelectData(unSelect))
+    return product.findById(id).select(unSelectData(unSelect));
 }
 
 const updateProductById = async ({
@@ -83,6 +83,12 @@ const updateProductById = async ({
     return await model.findByIdAndUpdate(productId, payload, { new: isNew })
 }
 
+const getProductById = async (productId) => {
+    return product.findOne({
+        _id: convertToObjectIdMongoose((productId))
+    }).lean()
+}
+
 module.exports = {
     findAllDraftForShop,
     publishProductByShop,
@@ -92,4 +98,5 @@ module.exports = {
     findAllProducts,
     findProduct,
     updateProductById,
+    getProductById,
 }

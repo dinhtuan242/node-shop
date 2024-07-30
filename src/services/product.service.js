@@ -53,13 +53,13 @@ class ProductFatory {
     }
 
     static async findAllProducts({ limit = 50, sort = 'ctime', page = 1, filter = { isPublish: true } }) {
-        return await findAllProducts({ limit, sort, page, filter, select: ['name', 'price', 'thumb'] })
+        return await findAllProducts({ limit, sort, page, filter, select: ['name', 'price', 'thumb', 'shop'] })
     }
-    
+
     static async findProduct({ id }) {
         return await findProduct({ id, unSelect: ['__v'] })
     }
-    
+
     static async updateProduct(type, productId, payload) {
         switch (type) {
             case 'Electronics':
