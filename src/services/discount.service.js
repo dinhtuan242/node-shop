@@ -147,9 +147,10 @@ class DiscountService {
         }
 
         const amount = type === 'fixed_amount' ? value : totalOrder * (value / 100)
+
         return {
             totalOrder,
-            amount,
+            discount: amount,
             totalPrice: totalOrder - amount
         }
     }

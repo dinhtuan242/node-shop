@@ -31,7 +31,6 @@ const findAllDiscountCodesSelect = async ({
 }
 
 const checkDiscountExists = async ({model, filter}) => {
-    console.log(model);
     return await model.findOne(filter).lean()
 }
 
